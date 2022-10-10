@@ -1,0 +1,36 @@
+image: gradle
+stages:
+  - package
+  - dockerPush
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - build/
+
+gradle_package:
+  stage: package
+  tags:
+    - docker
+  script:
+    - gradle bootJar
+
+docker_push:
+  image: docker:latest
+  services:
+    - docker:dind
+  stage: dockerPush
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - build/
+    policy: pull
+  tags:
+    - docker
+  script:
+    - docker login --username $REGISTRY_USERNAME --password $REGISTRY_PASSWORD registry-vpc.cn-beijing.aliyuncs.com
+    - time=`date "+%Y%m%d%H%M%S"`
+    - dockerName=registry-vpc.cn-beijing.aliyuncs.com/wzm/wejuai-instant-message:$time
+    - echo $dockerName
+    - docker build --tag $dockerName build
+    - docker push $dockerName
